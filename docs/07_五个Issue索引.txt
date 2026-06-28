@@ -1,0 +1,54 @@
+================================================================
+  五个Issue完整索引
+  时间: 2026-06-27 | GitHub: github.com/Xuan-yi-yan
+================================================================
+
+1. QwenLM/qwen-code #5083 — TUI卡死/上下文截断
+   [P1] https://github.com/QwenLM/qwen-code/issues/5083
+
+   提交者: kilowu
+   本人诊断: 硬截断(滑动窗口)导致关键信息丢失, 模型逻辑链断裂
+   本人方案: CoT驱动的语义压缩 — 事实提取→失败标记→状态快照
+   状态: 已发布分析
+
+
+2. DeepSeek-V3 #1368 — Thinking模式安全退化
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1368
+
+   提交者: HiChat-fog
+   本人诊断: 安全是"权重"不是"闸门" — 安全约束和Helpfulness在同一优化空间内博弈
+   本人方案: 推理时安全锚点注入 + Logit Bias + CoT安全检查
+   qingkong66回复: "你的分析重新定义了#1368"
+
+
+3. DeepSeek-V3 #1420 — 长会话认知漂移
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1420
+
+   提交者: levax29-ai
+   本人诊断: "KV池中没有语义索引" — 注意力在无标注的大池子里裸游
+   本人方案: 语义预标注中间件(意图标记→相关性过滤→结构化组装)
+   qingkong66回复: "正是根因"
+
+
+4. DeepSeek-V3 #1125 — 推理后缀污染/注意力锁定
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1125
+
+   提交者: D7x7z49 (从2月追到5月)
+   本人诊断: 不是"目标偏移"是"注意力锁定" — meta-signal污染content-signal
+   本人方案: 输出层重复模式检测+拦截重定向
+
+
+5. DeepSeek-V3 #1460 — 系统性认知病理学报告(Amoeba协议)
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1460
+
+   提交者: AmoebaFPS (独立研究员, 三AI联盟方法论)
+   三大病理: 空洞推理综合征/蒸馏硬化/长窗痴呆
+   本人诊断:
+     空洞推理 — 用结果CE loss倒逼推理质量, 而非改奖励函数
+     蒸馏硬化 — 根因是参数密度≠推理复杂度, 不是数据质量问题
+   本人方案: 引力子锚点(轻量探针嵌入, 实时监测注意力漂移)
+
+   AmoebaFPS回复: "这是收到的最重要洞察...缺失的一环...更新临床附录"
+   qingkong66回复: "完成了一层...原型草图...实验室不再孤单"
+   AmoebaFPS后续: 将引力子锚点形式化为数学框架(GDI方程+Huber-Log激活+
+               PyTorch MVS实现), 术语被采纳为官方临床报告标准命名
