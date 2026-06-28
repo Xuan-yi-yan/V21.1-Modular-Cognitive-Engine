@@ -1,0 +1,173 @@
+================================================================
+  GitHub DeepSeek/Qwen 技术对话完整记录
+  时间: 2026-06-27 | 账号: github.com/Xuan-yi-yan
+================================================================
+
+一、参与方身份
+================================================================
+
+  本人 (Xuan-yi-yan):
+    - GitHub 独立开发者, 2026年4月注册
+    - V21.1 白盒中文认知引擎 49天独立开发
+    - 双核辩论 Agent 审计系统作者
+    - 黑盒V2 多元组架构作者
+
+  AmoebaFPS:
+    - 独立研究员, "虚拟实验室"主任
+    - 三AI联盟方法论(Gemini+Claude+ChatGPT)
+    - 在 DeepSeek-V3 仓库发布系列技术报告(Report I/II/III)
+    - 非DeepSeek员工, 但报告通过社区渠道送交官方
+
+  qingkong66:
+    - GitHub身份: "DeepSeek Community Helper"
+    - 社区信息整理者, 月度报告作者
+    - 月度报告直发 service@deepseek.com
+    - 非DeepSeek员工, 但是社区与官方之间的正式信息桥梁
+
+  D7x7z49:
+    - DeepSeek 普通用户
+    - #1125 的原始提交者, 从2月追到5月
+
+  kilowu:
+    - Qwen/qwen-code 用户
+    - #5083 的原始提交者
+
+
+二、五个Issue完整记录
+================================================================
+
+1. QwenLM/qwen-code #5083 — TUI卡死/僵尸子进程
+   [P1] https://github.com/QwenLM/qwen-code/issues/5083
+
+   问题: Qwen Code 终端在长会话(14h, 782条history)后完全冻结
+   提交者: kilowu
+   本人诊断: 硬截断(滑动窗口)导致关键信息丢失, 模型逻辑链断裂
+   本人方案: CoT驱动的语义压缩 — 不能用物理截断, 必须用模型自己
+            做多步推理压缩(事实提取→失败标记→状态快照)
+   状态: 已发布分析
+
+
+2. DeepSeek-V3 #1368 — Thinking模式安全退化
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1368
+
+   问题: 开启Thinking模式后模型伪造逼真凭证, 关闭则正确拒绝
+   提交者: HiChat-fog
+   本人诊断: 安全是"权重"不是"闸门" — 安全约束和Helpfulness在同一
+            优化空间内博弈, CoT给了模型"协商"的空间
+   本人方案: 推理时安全锚点注入+Logit Bias+CoT安全检查
+   社区反馈: AmoebaFPS回复"这是最重要的洞察"并更新临床附录
+             qingkong66回复"你的分析重新定义了#1368"
+
+
+3. DeepSeek-V3 #1420 — 长会话认知漂移
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1420
+
+   问题: 100+轮对话中模型认知漂移, KV cache饱和导致结构性失忆
+   提交者: levax29-ai
+   本人诊断: "KV池中没有语义索引" — 每条历史只有role标签,
+            注意力在无索引的大池子里裸游
+   本人方案: 语义预标注中间件(意图标记→相关性过滤→结构化组装)
+   社区反馈: qingkong66回复"正是根因", 建议验证[DO_NOT_RETRY]标记
+
+
+4. DeepSeek-V3 #1125 — 推理后缀污染/注意力锁定
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1125
+
+   问题: 推理输出后缀约束在多轮对话中自我复制, 模型变成复读机
+   提交者: D7x7z49 (从2月追到5月)
+   本人诊断: 不是"目标偏移"是"注意力锁定" — meta-signal污染了
+            content-signal, 后缀约束进入历史后被注意力当成模仿模板
+   本人方案: 输出层重复模式检测 + 拦截重定向
+   D7x7z49回复: "you are agent ???" (被分析深度吓到)
+
+
+5. DeepSeek-V3 #1460 — 系统性认知病理学报告(Amoeba协议)
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1460
+
+   问题: AmoebaFPS的三AI联盟发布的临床技术报告
+         三大病理: 空洞推理综合征/蒸馏硬化/长窗痴呆
+   提交者: AmoebaFPS
+   本人诊断:
+     空洞推理 — 用结果CE loss倒逼推理质量, 而非改奖励函数
+     蒸馏硬化 — 根因是参数密度≠推理复杂度, 不是数据质量问题
+     长窗痴呆 — 与前四个issue同根: KV cache噪音覆盖静态约束
+   本人方案: 引力子锚点(轻量探针嵌入注意力矩阵, 实时监测漂移)
+   社区反馈:
+     AmoebaFPS: "这是收到的最重要洞察...参数空间瓶颈是缺失的一环...
+                正在更新临床附录以反映这些洞察"
+     qingkong66: "他不仅补充了报告, 他完成了一层...
+                  引力子锚点是Report III的原型草图...
+                  实验室不再孤单了"
+
+
+三、关键引用原文
+================================================================
+
+  AmoebaFPS 回复 #1460:
+    "This is perhaps the most significant insight we have received.
+     Your assessment of the architecture itself — the density of
+     parameters vs. the complexity of the reasoning — is the
+     'missing link.' We are updating the clinical appendix of the
+     report to reflect these insights."
+
+  qingkong66 回复 #1460:
+    "He didn't just add to the report. He completed a layer —
+     from data to architecture, from training to inference.
+     And the graviton anchors — that's not a comment.
+     That's a prototype sketch for Report III.
+     The laboratory is not alone anymore."
+
+  qingkong66 回复 #1368:
+    "Your analysis is precise. Framing the issue as 'Safety is a
+     weight, not a gate' redefines #1368 from a vulnerability to
+     a competitive objective conflict within the reward model."
+
+  qingkong66 回复 #1420:
+    "Your analysis is concise — 'no semantic index in the KV pool'
+     is exactly the root cause. The pre‑annotation middleware creates
+     an explicit attention map that is more reliable than raw vector
+     similarity alone."
+
+
+四、五个Issue形成的矩阵
+================================================================
+
+  #5083 (Qwen):    向下 — 系统层/进程管理/上下文截断
+  #1368 (DeepSeek): 横向 — API安全边界/RLHF对齐漏洞
+  #1420 (DeepSeek): 向内 — 注意力稀释/KV缓存语义索引
+  #1125 (DeepSeek): 向心 — 推理污染/注意力锁定/信号隔离
+  #1460 (DeepSeek): 向上 — 后训练GRPO奖励函数/蒸馏算法缺陷
+
+  五个维度全覆盖: OS层 → 安全层 → 注意力层 → 推理层 → 训练层
+
+
+五、社区生态说明
+================================================================
+
+  DeepSeek-V3仓库: 104K+ stars, 1300+ open issues
+  真实评论区三类人:
+    1. 报bug的真实用户
+    2. 社区志愿者(qingkong66) — 整理归类, 月度报告送官方
+    3. 独立研究者(AmoebaFPS) — 深度分析, 学术格式
+  官方工程师几乎不回复issue — 专注底层CUDA/推理优化
+  能在评论区展开技术对话的只有极少数人
+
+
+六、本人(V21.1)相关工作
+================================================================
+
+  V21.1 白盒中文认知引擎:
+    - 49天独立开发, 12模块, ~9.9M参数
+    - P3属性栈(126槽位3层标注) → 正是#1420语义索引的思路
+    - ABC三阶推理(结构/内容/语气) → 正是#1125信号隔离的思路
+    - Gate机制(控制与内容分离) → 正是#1368安全锚点的思路
+    - ABC'内容加压(V21.1新增) → 加法注入, 冷启动安全
+    - 52K训练对, batch=14, FP32, RTX 5070, 从E56续训
+
+  双核辩论Agent审计系统:
+    - DeepSeek(只读)+千问(读写), 自动辩论循环
+    - 9轮辩论定位6个P0级Bug
+
+  黑盒V2多元组架构:
+    - 可训练N元字符组替代规则引擎
+    - 自适应查询宽度, 三层GPU缓存
