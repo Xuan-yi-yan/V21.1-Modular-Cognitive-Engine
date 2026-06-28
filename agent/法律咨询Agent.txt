@@ -1,0 +1,244 @@
+================================================================
+  法律咨询 Agent -- 架构设计与完整代码
+  时间: 2026-06-27
+================================================================
+
+一、架构设计
+================================================================
+
+  用户输入
+    |
+    v
+  [1] 意图分析 API
+      分析用户咨询属于哪个法律领域
+      (劳动法/合同法/婚姻法/消费者权益)
+      提取关键词, 给出置信度
+    |
+    v
+  [2] 知识库检索 API
+      根据意图分析结果, 查询法律知识库
+      匹配最相关的法律条款
+    |
+    v
+  [3] 审核确认 API (独立于上一个AI)
+      审核检索结果是否匹配用户意图
+      检查是否有明显错误或遗漏
+      给出匹配度评分和补充建议
+    |
+    v
+  [4] 格式化输出
+      组织最终回复
+      附免责声明: "仅供参考, 不构成法律建议"
+
+  关键设计思想:
+  - 分析AI和审核AI分离, 防止单AI自欺
+  - 知识库与推理逻辑分离, 可独立更新
+  - 全程无真实API调用, 纯本地模拟演示
+
+
+二、完整代码 (纯本地, 无API key, 可直接跑)
+================================================================
+
+# -*- coding: utf-8 -*-
+"""
+法律咨询 Agent 示例 -- 教学用
+架构: 用户输入 -> 意图分析 -> 知识库检索 -> 审核确认 -> 输出(仅供参考)
+纯本地模拟数据, 无 API key, 可直接跑
+"""
+
+import time
+
+# =============================================================
+# 模拟法律知识库 (本地, 不需API)
+# =============================================================
+LEGAL_KB = {
+    "劳动法": {
+        "加班费": "根据《劳动法》第44条, 工作日加班支付1.5倍工资, 休息日2倍, 法定节假日3倍。",
+        "辞退赔偿": "根据《劳动合同法》第47条, 每满一年支付一个月工资作为经济补偿。不满半年算半年, 半年以上算一年。",
+        "试用期": "根据《劳动合同法》第19条, 合同期3个月以上不满1年试用期不超1个月, 1年以上不满3年不超2个月, 3年以上不超6个月。",
+        "年假": "根据《职工带薪年休假条例》, 累计工作满1年不满10年享5天, 满10年不满20年享10天, 满20年享15天。"
+    },
+    "合同法": {
+        "违约金": "根据《民法典》第585条, 违约金过高的可以请求法院适当减少。一般超过实际损失30%可认定为过高。",
+        "合同无效": "根据《民法典》第153条, 违反法律强制性规定或公序良俗的合同无效。第154条规定恶意串通损害他人权益的合同无效。",
+        "定金": "根据《民法典》第587条, 给付定金方违约不得要求返还, 收受定金方违约应双倍返还。定金不得超过合同金额20%。",
+        "不可抗力": "根据《民法典》第590条, 因不可抗力不能履行合同的, 部分或全部免除责任, 但应及时通知对方。"
+    },
+    "婚姻法": {
+        "离婚财产": "根据《民法典》第1087条, 离婚时共同财产协议处理, 协议不成法院判决。照顾子女和女方权益。",
+        "抚养权": "根据《民法典》第1084条, 不满2周岁原则上随母, 满8周岁应尊重子女意愿。",
+        "彩礼返还": "根据最高法司法解释, 未办理结婚登记或登记后未共同生活的, 彩礼应予返还。"
+    },
+    "消费者权益": {
+        "退一赔三": "根据《消费者权益保护法》第55条, 经营者欺诈的, 退一赔三。不足500元按500元算。",
+        "质量问题": "根据《消费者权益保护法》第24条, 7日内可退货, 15日内可换货或修理。",
+        "虚假宣传": "根据《广告法》和《消费者权益保护法》, 虚假宣传构成欺诈, 可主张退一赔三。"
+    }
+}
+
+
+# =============================================================
+# Step 1: 意图分析 (模拟API)
+# =============================================================
+def analyze_intent(user_input: str) -> dict:
+    """分析用户的法律咨询意图, 提取关键信息"""
+    keywords_map = {
+        "劳动法": ["加班", "辞退", "裁员", "试用期", "年假", "工资", "赔偿", "离职", "合同到期", "开除"],
+        "合同法": ["合同", "违约金", "定金", "押金", "违约", "协议", "不可抗力", "解除"],
+        "婚姻法": ["离婚", "结婚", "彩礼", "抚养权", "财产分割", "婚前", "出轨", "家暴"],
+        "消费者权益": ["假货", "质量", "退款", "退货", "虚假宣传", "欺诈", "赔偿", "网购"],
+    }
+
+    scores = {}
+    for category, keywords in keywords_map.items():
+        score = sum(1 for kw in keywords if kw in user_input)
+        if score > 0:
+            scores[category] = score
+
+    if not scores:
+        return {"category": "通用法律咨询", "keywords": [], "confidence": 0.3}
+
+    best = max(scores, key=scores.get)
+    matched_kws = [kw for kw in keywords_map[best] if kw in user_input]
+
+    return {
+        "category": best,
+        "keywords": matched_kws,
+        "confidence": min(scores[best] / 3, 1.0)
+    }
+
+
+# =============================================================
+# Step 2: 知识库检索 (模拟API)
+# =============================================================
+def query_knowledge_base(analysis: dict) -> list:
+    """根据意图分析结果检索法律知识库"""
+    category = analysis["category"]
+    keywords = analysis["keywords"]
+    results = []
+
+    kb = LEGAL_KB.get(category, {})
+    for topic, content in kb.items():
+        for kw in keywords:
+            if kw in topic or kw in content:
+                results.append({"topic": topic, "content": content, "source": f"《{category}》相关条款"})
+                break
+
+    if not results and kb:
+        for topic, content in kb.items():
+            results.append({"topic": topic, "content": content, "source": f"《{category}》相关条款"})
+
+    return results[:3]
+
+
+# =============================================================
+# Step 3: 审核确认 (模拟另一个AI审核)
+# =============================================================
+def verify_output(results: list, analysis: dict) -> dict:
+    """审核: 内容是否匹配意图, 是否需要补充说明"""
+    verification = {
+        "passed": True,
+        "warnings": [],
+        "match_score": 0.0,
+        "suggestions": []
+    }
+
+    if results:
+        match_count = sum(1 for r in results if analysis["category"] in r.get("source", ""))
+        verification["match_score"] = match_count / len(results)
+    else:
+        verification["passed"] = False
+        verification["warnings"].append("知识库未检索到匹配条目")
+        verification["suggestions"].append("建议尝试更宽泛的关键词或换一个法律领域描述问题")
+
+    if analysis["confidence"] < 0.3:
+        verification["warnings"].append("意图识别置信度较低, 结果可能不完全匹配")
+
+    verification["suggestions"].append("以上为一般性法律参考, 具体案情请联系专业律师")
+
+    return verification
+
+
+# =============================================================
+# Step 4: 格式化输出
+# =============================================================
+def format_output(user_input: str, analysis: dict, results: list, verification: dict) -> str:
+    """组装最终输出"""
+    lines = []
+    lines.append("=" * 60)
+    lines.append("  法律咨询 Agent -- 处理报告")
+    lines.append("=" * 60)
+    lines.append(f"\n>> 用户问题: {user_input}")
+    lines.append(f"\n>> 意图分析:")
+    lines.append(f"   领域: {analysis['category']}")
+    lines.append(f"   关键词: {', '.join(analysis['keywords']) if analysis['keywords'] else '未识别'}")
+    lines.append(f"   置信度: {analysis['confidence']:.0%}")
+
+    lines.append(f"\n>> 知识库检索结果:")
+    if results:
+        for i, r in enumerate(results, 1):
+            lines.append(f"   {i}. [{r['topic']}] {r['content']}")
+            lines.append(f"      来源: {r['source']}")
+    else:
+        lines.append("   [WARN] 未找到匹配的法律条款")
+
+    lines.append(f"\n>> 审核结果:")
+    lines.append(f"   审核状态: {'通过' if verification['passed'] else '未通过'}")
+    lines.append(f"   匹配度: {verification['match_score']:.0%}")
+    if verification["warnings"]:
+        for w in verification["warnings"]:
+            lines.append(f"   [WARN] {w}")
+    if verification["suggestions"]:
+        for s in verification["suggestions"]:
+            lines.append(f"   [TIP] {s}")
+
+    lines.append(f"\n{'=' * 60}")
+    lines.append("[!] 免责声明: 本内容由AI生成, 仅供参考, 不构成法律建议。")
+    lines.append("    具体法律问题请咨询持证律师。")
+    lines.append("=" * 60)
+
+    return "\n".join(lines)
+
+
+# =============================================================
+# 主流程
+# =============================================================
+def legal_agent(user_input: str) -> str:
+    """法律咨询Agent主入口"""
+    print(f"\n... 处理中 ...\n")
+    analysis = analyze_intent(user_input)
+    results = query_knowledge_base(analysis)
+    verification = verify_output(results, analysis)
+    return format_output(user_input, analysis, results, verification)
+
+
+# =============================================================
+# 运行
+# =============================================================
+if __name__ == "__main__":
+    print("=" * 60)
+    print("  法律咨询 Agent (教学示例)")
+    print("  架构: 意图分析 -> 知识库检索 -> AI审核 -> 输出")
+    print("  输入 'q' 退出")
+    print("=" * 60)
+
+    while True:
+        user_input = input("\n>> 请输入法律问题: ").strip()
+        if user_input.lower() == 'q':
+            print("再见!")
+            break
+        if not user_input:
+            continue
+        result = legal_agent(user_input)
+        print(result)
+
+
+三、如何扩展为真实项目
+================================================================
+
+  1. 替换知识库: 将 LEGAL_KB 替换为真实数据库(SQLite/PostgreSQL/向量库)
+  2. 接入大模型API: analyze_intent 和 verify_output 替换为 LLM API调用
+     (如 DeepSeek/千问/OpenAI, 用 prompt 控制输出格式)
+  3. 增加记忆模块: 将每次咨询存入记忆库, 下次优先检索
+  4. 增加用户画像: 记录用户历史咨询类型, 预判需求
+  5. 多轮对话: 支持追问和澄清
