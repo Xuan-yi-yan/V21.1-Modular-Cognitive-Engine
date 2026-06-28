@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>卫锦旗 - Agent算法开发工程师</title>
+<style>
+body{font-family:"Microsoft YaHei",sans-serif;max-width:900px;margin:30px auto;color:#1a1a1a;line-height:1.7;font-size:14px}
+h1{font-size:22px;border-bottom:2px solid #1a56db;padding-bottom:8px;color:#1a56db}
+h2{font-size:16px;margin-top:18px;color:#1e40af;border-left:3px solid #1a56db;padding-left:8px}
+h3{font-size:14px;margin:8px 0 4px 0;color:#333}
+ul{margin:4px 0 4px 16px;padding:0}
+li{margin:2px 0}
+.sk{display:inline-block;background:#dbeafe;padding:1px 8px;margin:1px;border-radius:3px;font-size:12px;color:#1e40af}
+.tag{display:inline-block;background:#fef3c7;padding:1px 6px;margin:1px;border-radius:3px;font-size:11px}
+.info{color:#666;font-size:13px}
+</style></head><body>
+
+<h1>卫锦旗 — AI研发 / Agent开发 / 算法工程</h1>
+<p class="info">📧 18435911363@qq.com &nbsp;|&nbsp; 📍 北京 &nbsp;|&nbsp; 随时到岗 &nbsp;|&nbsp; 学历: 大专</p>
+<p class="info">🔗 GitHub: github.com/xuanyiyan &nbsp;|&nbsp; HuggingFace: huggingface.co/xuanyiyan</p>
+
+<div style="margin:8px 0">
+<span class="sk">Python</span><span class="sk">PyTorch</span><span class="sk">白盒模块化架构</span><span class="sk">Cross-Attention</span><span class="sk">RMSNorm</span><span class="sk">门控系统</span><span class="sk">分层Adam优化</span><span class="sk">梯度诊断</span><span class="sk">NaN回滚</span><span class="sk">多Agent协作</span><span class="sk">Tool Calling</span><span class="sk">LLM API集成</span><span class="sk">数据工程</span><span class="sk">混合精度训练</span>
+</div>
+
+<h2>1. V21 白盒中文认知引擎 (47天独立开发, 2026.05-06)</h2>
+<h3>一句话: 从零构建的16M参数白盒模块化中文纠错引擎，11个功能模块全可解释，单卡RTX 5070训练。</h3>
+
+<h3>架构</h3>
+<ul>
+<li><b>CharEmbed</b>: 3000字×256D正交初始化，每字独立方向</li>
+<li><b>P3属性栈</b>: 14模块规则引擎(0参数)，128D×126槽位3层分级(词类/语义/句法/情感/逻辑关系/修饰/领域/风格)，连接词&修饰规则已激活</li>
+<li><b>P7交叉注意力</b>: 16头×16D=256D，Q=A句/KV=全词表，<b>RMSNorm Q/K防连乘爆炸</b>，温度可学习</li>
+<li><b>P3-L属性联动</b>: 312头独立注意力，23组属性关联度统计(mean/std/range)</li>
+<li><b>ABC三阶逻辑推理</b>: StageA(结构15类)→StageB(128D内容)→StageC(48D语气)，完整推理链</li>
+<li><b>384D拼接门控</b>: 三信号(base/abc/sent)各占128D独立通道，cat后送Explore(384→512→512→256)→Meta(sigmoid)→Gate[256]调制P6</li>
+<li><b>P6解码器</b>: 128头×Linear(256,256)，tied weights(输入输出共享Embedding)</li>
+</ul>
+
+<h3>训练系统</h3>
+<ul>
+<li><b>7独立Adam优化器 + 分层学习率</b>: 基于梯度/参数比精确计算——P7×0.05(压97%), Gate×5.0(提5x), ABC×3.0</li>
+<li><b>5层智能防护</b>: ①ac_batch实时检测 ②CE单次尖峰检测+clamp ③aux_scale渐进自愈(5%/步) ④NaN自动回滚(from best.pt) ⑤loss<0.0001自动停车</li>
+<li><b>梯度诊断系统</b>: 逐模块grad/param ratio实时追踪，每5轮打印</li>
+<li><b>数据工程</b>: 贪心覆盖采样(1500对=89%字表 vs 随机20%)，脏数据过滤(4360对/8.3%)，52K字频/长度/覆盖度全分析</li>
+</ul>
+
+<h3>Bug猎人与架构演进</h3>
+<ul>
+<li>25+假说验证 → 18个推翻 → 12个确认真Bug → <b>定位"假的2.1%": eval脚本维度不匹配导致权重加载失败</b></li>
+<li><b>sigmoid bias死梯度</b>: bias=2.0→梯度×0.1→gate端5轮全死，追6小时定位</li>
+<li>V20(5M,32头×4D)→V21初期(10M,16头×16D,256D)→V21最终(16M,RMSNorm,384D拼接,分层LR)</li>
+<li>36小时"破晓行动": 9轮双核辩论+60处代码修改+4项架构升级</li>
+</ul>
+
+<h2>2. 双核辩论Agent审计系统 (2026.06)</h2>
+<ul>
+<li><b>架构</b>: DeepSeek(只读分析)+千问(读写审查)，自动辩论循环(最多5轮)，收敛判断(CONVERGE)</li>
+<li><b>7个工具</b>: read_file / search_files / search_content / list_dir / web_fetch / run_cmd / write_file</li>
+<li><b>权限控制</b>: DeepSeek readonly模式(隐藏write_file/run_cmd)，千问完整权限</li>
+<li><b>鲁棒性</b>: 千问API超时自动重试(5s等待)，JSON+XML双格式工具调用解析，参数别名映射，重复调用跳过</li>
+<li><b>战绩</b>: 9轮辩论定位6个P0级Bug，含eval脚本维度不匹配(准确率2.1%→78.6%真相)</li>
+<li>max_tokens=32768防截断，永久记忆持久化，~400行代码10分钟搭建</li>
+</ul>
+
+<h2>3. 黑盒V2多元组架构 (2026.06, 3小时从零到验证通过)</h2>
+<ul>
+<li><b>核心创新</b>: 可训练N元字符组(group_affinity[V,256])替代规则引擎，"哪些字常一起出现"由模型自学</li>
+<li><b>输入驱动组表示</b>: batch_group_w × A_emb → 不同输入激活不同组→不同sent_vec→不同输出(解决sent_vec常量bug)</li>
+<li><b>组级交叉注意力</b>: 256组×64D，RMSNorm Q/K，Top-16组直通(仿V21 384D拼接，防mean信息丢失)</li>
+<li><b>对错对比loss</b>: CE(输出正确字) + 0.1×惩罚(输出错字)，组多样性正则化(防256组坍缩)</li>
+<li>10M参数, 1500对CE下降正常(6→2.2)，架构验证通过</li>
+</ul>
+
+<h2>4. V21.1 ABC'内容加压升级 (2026.06.27, 单日完成)</h2>
+<ul>
+<li><b>核心创新</b>: P3-L后插入ABC'内容加压模块(128→192→128)，加法注入P6输入端，不改变现有ABC控制逻辑</li>
+<li><b>设计思路</b>: ABC从"纯控制信号"升级为"控制+内容"双路径——ABC(控制→Gate)不变，ABC'(内容→P6输入端加法注入)</li>
+<li><b>注入方式</b>: sv_rich = sv_batch + abc_to_sent(abc_prime)×0.1，保现有信号主导，新模块渐进参与</li>
+<li><b>冷启动安全</b>: gain=0.01 → abc_prime初始贡献≈0%，不冲E56已训练权重</li>
+<li>+119K参数, 9.7M→9.9M, 不改任何现有类定义</li>
+</ul>
+
+<h2>核心能力标签</h2>
+<div>
+<span class="sk">白盒架构从0设计</span><span class="sk">注意力机制魔改</span><span class="sk">梯度诊断</span><span class="sk">Bug猎手(25假说验证)</span><span class="sk">分层优化器</span><span class="sk">NaN回滚</span><span class="sk">多Agent系统</span><span class="sk">Tool Calling</span><span class="sk">数据工程</span><span class="sk">全栈独立开发</span><span class="sk">技术写作(220+文件)</span>
+</div>
+
+<h2>文档体系 (开发全程可追溯)</h2>
+<p class="info">技术能力展示 | V21架构全景 | 参数与梯度容量完整描述 | 36小时破晓行动时间线(逐Bug) | Bug猎人执着修复全记录(25假说) | 双核辩论系统架构与战绩(9轮) | 黑盒V2开发记录 | 47天开发全程记录 | 未来展望路线图 | 防背诵机制参数证明 | 防爆与智能控制体系</p>
+
+<div style="margin-top:20px;padding-top:10px;border-top:1px solid #ddd;color:#999;font-size:12px">
+<p>附件: 技术能力与成果展示文档.txt | V21_Bug猎人_执着修复全记录.txt | V21_36小时破晓行动_完整时间线.txt | 双核辩论系统_架构与战绩.txt</p>
+</div>
+
+</body></html>
