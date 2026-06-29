@@ -52,3 +52,11 @@
    qingkong66回复: "完成了一层...原型草图...实验室不再孤单"
    AmoebaFPS后续: 将引力子锚点形式化为数学框架(GDI方程+Huber-Log激活+
                PyTorch MVS实现), 术语被采纳为官方临床报告标准命名
+
+
+6. DeepSeek-V3 #1463 — 语言跟随退化/注意力锁定被社区引用
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1463
+   提交者: nerwie001
+   社区诊断: qingkong66引用#1125的注意力锁定框架解释根因
+   "触发条件与@Xuan-yi-yan在#1125描述的注意力锁定机制一致"
+   状态: 已收录六月月度报告
